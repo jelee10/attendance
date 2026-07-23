@@ -74,75 +74,61 @@
     </div>
   </section>
 
-<iframe id="apiFrame" name="attendanceApiFrame" title="출석 처리" style="display:none"></iframe>
-
 <script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbwtk3ZKFQoJWbCSNLc2ZgmFFnff2s7W2NopKxKRYeY3pof9hCUfz9HLKXsHZRewlHZhwA/exec';
-const API_TOKEN = 'tcad-v20-7f4b9d2c6a1e8f35';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxnN0dc_p_O81wOZnVDxzPXsJD-L-4OFm_BEL-hJshlZ1uTxfCTKwy0R9o0potEZ96khg/exec';
+const API_TOKEN = 'tcad-v30-20260723';
+
 let selectedSeat='';
 let current={};
-let pendingPosts=new Map();
 const pages=['pageLogin','pageState','pageSeats','pageProcessing','pageComplete'];
-const deviceId=(()=>{let v=localStorage.getItem('attendanceDeviceId');if(!v){v=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random());localStorage.setItem('attendanceDeviceId',v)}return v})();
+const deviceId=(()=>{let v=localStorage.getItem('attendanceDeviceId');if(!v){v=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2));localStorage.setItem('attendanceDeviceId',v)}return v})();
+
 function el(id){return document.getElementById(id)}
 function val(id){return el(id).value.trim()}
 function show(id,on=true){el(id).classList.toggle('hidden',!on)}
-function showPage(id){pages.forEach(p=>el(p).classList.toggle('active',p===id));document.body.style.overflow=(id==='pageProcessing'||id==='pageComplete')?'hidden':'';requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'instant'}))}
+function showPage(id){pages.forEach(p=>el(p).classList.toggle('active',p===id));document.body.style.overflow=(id==='pageProcessing'||id==='pageComplete')?'hidden':'';requestAnimationFrame(()=>window.scrollTo(0,0))}
 function setMsg(t){el('message').innerHTML=t?'<div class="msg">'+escapeHtml(t)+'</div>':''}
-function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function escapeHtml(s){return String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function goLogin(){current={};selectedSeat='';setMsg('');show('phoneBox',false);showPage('pageLogin');el('name').focus()}
 
-function jsonp(op,params={}){
+function apiGet(op, params={}){
   return new Promise((resolve,reject)=>{
-    const cb='tcadCb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const callback='tcadCb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const timer=setTimeout(()=>cleanup(new Error('서버 응답 시간이 초과되었습니다.')),15000);
     const script=document.createElement('script');
-    const timer=setTimeout(()=>finish(new Error('서버 응답 시간이 초과되었습니다.')),20000);
-    function finish(err,data){clearTimeout(timer);delete window[cb];script.remove();err?reject(err):resolve(data)}
-    window[cb]=data=>finish(null,data);
-    const q=new URLSearchParams({api:'1',op,token:API_TOKEN,callback:cb,...params});
-    script.onerror=()=>finish(new Error('서버에 연결하지 못했습니다.'));
+    function cleanup(err,value){clearTimeout(timer);delete window[callback];script.remove();err?reject(err):resolve(value)}
+    window[callback]=(value)=>cleanup(null,value);
+    const q=new URLSearchParams({api:'1',op,token:API_TOKEN,callback,...params,_:String(Date.now())});
     script.src=API_URL+'?'+q.toString();
+    script.onerror=()=>cleanup(new Error('서버에 연결하지 못했습니다.'));
     document.head.appendChild(script);
   });
 }
 
-function apiPost(payload){
-  return new Promise((resolve,reject)=>{
-    const requestId='req_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    const timer=setTimeout(()=>{pendingPosts.delete(requestId);reject(new Error('서버 응답 시간이 초과되었습니다.'));},25000);
-    pendingPosts.set(requestId,{resolve,reject,timer});
-    const form=document.createElement('form');
-    form.method='POST';
-    form.action=API_URL;
-    form.target='attendanceApiFrame';
-    form.style.display='none';
-    const fields={api:'1',op:'record',token:API_TOKEN,requestId,payload:JSON.stringify(payload)};
-    Object.entries(fields).forEach(([name,value])=>{const input=document.createElement('input');input.type='hidden';input.name=name;input.value=value;form.appendChild(input)});
-    document.body.appendChild(form);
-    form.submit();
-    setTimeout(()=>form.remove(),1000);
-  });
+async function apiPostRecord(payload){
+  const requestId=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2)).replace(/[^A-Za-z0-9_-]/g,'');
+  const body=new URLSearchParams({api:'1',op:'record',token:API_TOKEN,requestId,payload:JSON.stringify(payload)});
+  await fetch(API_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:body.toString(),cache:'no-store'});
+  const started=Date.now();
+  while(Date.now()-started<25000){
+    await new Promise(r=>setTimeout(r,700));
+    const status=await apiGet('result',{requestId});
+    if(status && status.ok && !status.pending) return status.result;
+    if(status && status.ok===false) throw new Error(status.message||'처리 결과를 확인하지 못했습니다.');
+  }
+  throw new Error('처리 결과 확인 시간이 초과되었습니다. 다시 시도해 주세요.');
 }
-
-window.addEventListener('message',event=>{
-  if(event.origin!=='https://script.google.com' && !event.origin.endsWith('.googleusercontent.com')) return;
-  const data=event.data||{};
-  if(data.source!=='tcad-attendance-v20') return;
-  const pending=pendingPosts.get(data.requestId);
-  if(!pending) return;
-  clearTimeout(pending.timer);pendingPosts.delete(data.requestId);pending.resolve(data.result);
-});
 
 async function lookup(){
   const name=val('name');
   if(!name){setMsg('이름을 입력하세요.');el('name').focus();return}
   setMsg('');showProcessing('내 출석 상태를 확인하고 있습니다.');
-  try{renderState(await jsonp('state',{name,phone4:val('phone'),deviceId}))}
+  try{renderState(await apiGet('state',{name,phone4:val('phone'),deviceId}))}
   catch(e){showPage('pageLogin');setMsg(e.message||'상태 확인 중 오류가 발생했습니다.')}
 }
 function renderState(r){if(!r||!r.ok){showPage('pageLogin');show('phoneBox',!!(r&&r.needsPhone));setMsg((r&&r.message)||'상태를 확인하지 못했습니다.');return}current={name:r.name,phone4:val('phone')};show('phoneBox',!!r.needsPhone);const s=r.state||{};let h='<b>'+escapeHtml(r.name)+'</b><br>현재 상태: <b>'+escapeHtml(s.status||'')+'</b>';if(!r.privacyLocked){if(s.seat)h+='<br>좌석: '+escapeHtml(s.seat);if(s.inTime)h+='<br>최초 입실: '+fmt(s.inTime);if(s.outTime)h+='<br>최종 퇴실: '+fmt(s.outTime);if(s.durationMs!=null)h+='<br>총 체류: '+duration(s.durationMs)}el('state').innerHTML=h;const a=el('actions');a.innerHTML='';if(!r.privacyLocked){if(s.status==='입실 중')a.innerHTML='<button class="btn danger" onclick="submitExit()">퇴실하기</button>';else a.innerHTML='<button class="btn secondary" onclick="openSeats()">입실하기</button>'}showPage('pageState')}
 function validSeats(){const out=[];for(let row=1;row<=9;row++){for(let c=0;c<15;c++){const letter=String.fromCharCode(65+c);if((row===2||row===3)&&(letter==='A'||letter==='O'))continue;out.push(letter+row)}}return out}
-async function openSeats(){selectedSeat='';el('selectedLabel').textContent='좌석을 선택하세요.';drawSeats({validSeats:validSeats(),seats:{}});showPage('pageSeats');try{const r=await jsonp('seats');if(r&&r.ok)drawSeats(r)}catch(e){}}
+async function openSeats(){selectedSeat='';el('selectedLabel').textContent='좌석을 선택하세요.';drawSeats({validSeats:validSeats(),seats:{}});showPage('pageSeats');try{const r=await apiGet('seats');if(r&&r.ok)drawSeats(r)}catch(e){}}
 function drawSeats(r){const valid=(r&&Array.isArray(r.validSeats))?r.validSeats:validSeats();const occupied=(r&&r.seats)||{};const g=el('seatGrid');g.innerHTML='';for(let row=1;row<=9;row++){for(let c=0;c<17;c++){const b=document.createElement('button');b.type='button';if(c===5||c===11){b.className='aisle';b.tabIndex=-1;g.appendChild(b);continue}const ci=c-(c>11?2:(c>5?1:0));const seat=String.fromCharCode(65+ci)+row;if(!valid.includes(seat)){b.className='seat gap';b.tabIndex=-1;g.appendChild(b);continue}b.className='seat';b.textContent=seat;b.setAttribute('aria-label',seat+' 좌석');if(occupied[seat]&&occupied[seat].length){b.disabled=true;b.title='현재 사용 중인 좌석'}b.onclick=()=>{document.querySelectorAll('.seat.selected').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selectedSeat=seat;el('selectedLabel').textContent='선택 좌석: '+seat};g.appendChild(b)}}}
 function showProcessing(text){el('processingText').textContent=text||'처리 중입니다.';showPage('pageProcessing')}
 function geo(cb){if(!navigator.geolocation){cb({});return}navigator.geolocation.getCurrentPosition(p=>cb({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}),()=>cb({}),{enableHighAccuracy:true,timeout:12000,maximumAge:0})}
@@ -150,12 +136,12 @@ function submitEntry(){if(!selectedSeat){el('selectedLabel').textContent='좌석
 function submitExit(){if(!confirm('퇴실 처리하시겠습니까?'))return;showProcessing('위치를 확인하고 퇴실 처리 중입니다.');geo(loc=>send('퇴실','',loc))}
 async function send(action,seat,loc,attempt=0){
   try{
-    const r=await apiPost({name:current.name,phone4:current.phone4,action,seat,deviceId,...loc});
-    if(r&&r.busy&&attempt<2){el('processingText').textContent='요청이 몰려 잠시 대기 중입니다.';setTimeout(()=>send(action,seat,loc,attempt+1),800+Math.random()*800);return}
+    const r=await apiPostRecord({name:current.name,phone4:current.phone4,action,seat,deviceId,...loc});
+    if(r&&r.busy&&attempt<2){el('processingText').textContent='요청이 몰려 잠시 대기 중입니다.';setTimeout(()=>send(action,seat,loc,attempt+1),800+Math.random()*900);return}
     if(!r||!r.ok){alert((r&&r.message)||'처리하지 못했습니다.');showPage(action==='입실'?'pageSeats':'pageState');return}
     showCompletion(action,seat,!!r.outsideRadius,String(r.locationStatus||''));
   }catch(e){
-    if(attempt<2){el('processingText').textContent='연결을 다시 시도하고 있습니다.';setTimeout(()=>send(action,seat,loc,attempt+1),800+Math.random()*800);return}
+    if(attempt<2){el('processingText').textContent='연결을 다시 시도하고 있습니다.';setTimeout(()=>send(action,seat,loc,attempt+1),800+Math.random()*900);return}
     alert(e.message||'처리 중 오류가 발생했습니다. 다시 시도하세요.');showPage(action==='입실'?'pageSeats':'pageState');
   }
 }
