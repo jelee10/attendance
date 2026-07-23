@@ -1,87 +1,167 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>TCAD 단기특강 출석</title>
-
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 70px 20px 30px;
-      background: #f5f7fa;
-      font-family: Arial, "Noto Sans KR", sans-serif;
-    }
-
-    .card {
-      width: 100%;
-      max-width: 340px;
-      padding: 32px 24px;
-      text-align: center;
-      background: white;
-      border-radius: 18px;
-      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.1);
-    }
-
-    h1 {
-      margin: 0 0 18px;
-      font-size: 23px;
-      line-height: 1.4;
-    }
-
-    p {
-      margin: 0 0 28px;
-      color: #555;
-      font-size: 16px;
-      line-height: 1.6;
-    }
-
-    button {
-      width: 200px;
-      min-height: 54px;
-      border: 0;
-      border-radius: 12px;
-      background: #2563eb;
-      color: white;
-      font-size: 19px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    button:active {
-      transform: scale(0.98);
-    }
+    :root{--green:#166534;--green2:#dcfce7;--slate:#334155;--red:#b91c1c;--bg:#f4f6f8;--text:#1f2937;--orange:#c2410c}
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--text)}
+    body{overflow-x:hidden}
+    .page{display:none;min-height:100dvh;width:100%;padding:18px 12px 28px}
+    .page.active{display:flex;flex-direction:column;align-items:center}
+    .narrow{width:min(88vw,340px)}
+    .wide{width:min(100%,820px)}
+    .card{background:#fff;border-radius:16px;padding:20px 16px;box-shadow:0 2px 12px #00000012;width:100%}
+    h1{font-size:23px;line-height:1.35;text-align:center;margin:0 0 18px}
+    h2{font-size:21px;text-align:center;margin:0 0 14px}
+    input{display:block;width:min(100%,230px);padding:15px 14px;border:1px solid #cbd5e1;border-radius:11px;font-size:19px;margin:8px auto 12px}
+    .btn{display:block;border:0;border-radius:12px;min-height:52px;padding:12px 22px;font-size:18px;line-height:1.25;font-weight:700;cursor:pointer;margin:10px auto 0;width:min(100%,280px)}
+    .primary{background:var(--green);color:#fff}.secondary{background:var(--slate);color:#fff}.danger{background:var(--red);color:#fff}.ghost{background:#e2e8f0;color:#334155}
+    .hidden{display:none!important}.msg{padding:11px;border-radius:9px;margin-top:10px;background:#eff6ff;font-size:15px;line-height:1.5}.small{font-size:14px;color:#64748b;text-align:center}.status{font-size:18px;line-height:1.8;text-align:center}.actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px}.actions .btn{margin:0;width:min(100%,240px)}
+    .topbar{display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:10px}.back{border:0;background:transparent;font-size:17px;font-weight:700;padding:10px 6px;color:#334155}.spacer{width:62px}
+    .lectern{text-align:center;background:#475569;color:white;padding:9px;border-radius:8px;margin:4px auto 16px;max-width:180px;font-size:16px}
+    .seat-card{padding:14px 8px 18px}.seat-wrap{overflow-x:auto;width:100%;padding:2px 0 10px;-webkit-overflow-scrolling:touch}.seat-grid{display:grid;grid-template-columns:repeat(17,38px);gap:5px;min-width:726px;justify-content:center}.seat{width:38px;height:38px;border:1px solid #16a34a;background:var(--green2);border-radius:7px;font-size:12px;font-weight:700;padding:0}.seat.selected{background:var(--green);color:white}.seat.gap,.aisle{visibility:hidden;width:38px;height:38px}.seat[disabled]{opacity:.42}
+    .selected-label{text-align:center;font-size:17px;font-weight:700;min-height:26px;margin-top:6px}
+    .center-screen{position:fixed!important;inset:0;z-index:9999;min-height:100dvh!important;height:100dvh;padding:0 12px!important;justify-content:flex-start!important;align-items:center!important;background:var(--bg);overflow:hidden}.center-screen .processing-box,.center-screen .completion-box{margin-top:max(72px,16dvh)}.processing-box,.completion-box{background:#fff;border-radius:18px;padding:36px 24px;text-align:center;width:min(calc(100vw - 48px),320px);box-shadow:0 10px 36px #0002}.spinner{width:42px;height:42px;border:4px solid #e2e8f0;border-top-color:var(--green);border-radius:50%;margin:0 auto 16px;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    .complete-icon{width:62px;height:62px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:38px;margin:0 auto 18px}.complete-icon.warning{background:var(--orange)}.complete-title{font-size:24px;font-weight:800;line-height:1.45}.complete-detail{font-size:17px;color:#475569;margin-top:12px;line-height:1.7}.outside{margin-top:16px;color:var(--orange);font-size:20px;font-weight:800}
+    @media(max-width:420px){.page{padding-left:8px;padding-right:8px}.narrow{width:min(86vw,330px)}.card{padding-left:13px;padding-right:13px}.seat-card{padding-left:3px;padding-right:3px}.seat-grid{grid-template-columns:repeat(17,36px);min-width:692px}.seat,.seat.gap,.aisle{width:36px;height:36px}h1{font-size:20px}.btn{font-size:18px}}
   </style>
 </head>
-
 <body>
-  <main class="card">
-    <h1>TCAD 단기특강(이론) 출석</h1>
+  <section id="pageLogin" class="page active">
+    <div class="narrow card">
+      <h1>TCAD 단기특강(이론) 출석</h1>
+      <input id="name" placeholder="이름을 입력하세요" autocomplete="name">
+      <div id="phoneBox" class="hidden"><input id="phone" inputmode="numeric" maxlength="4" placeholder="휴대전화 뒤 4자리"></div>
+      <button class="btn primary" onclick="lookup()">확인</button>
+      <div id="message"></div>
+    </div>
+  </section>
 
-    <p>
-      출석을 시작하려면<br>
-      아래 버튼을 눌러주세요.
-    </p>
+  <section id="pageState" class="page">
+    <div class="narrow card">
+      <h1>TCAD 단기특강(이론) 출석</h1>
+      <div id="state" class="status"></div>
+      <div class="actions" id="actions"></div>
+      <button class="btn ghost" onclick="goLogin()">다른 이름 입력</button>
+    </div>
+  </section>
 
-    <button type="button" onclick="openAttendance()">
-      출석하기
-    </button>
-  </main>
+  <section id="pageSeats" class="page">
+    <div class="wide">
+      <div class="topbar"><button class="back" onclick="showPage('pageState')">← 뒤로</button><h2>앉은 좌석 선택</h2><div class="spacer"></div></div>
+      <div class="card seat-card">
+        <div class="lectern">교탁</div>
+        <div class="seat-wrap"><div id="seatGrid" class="seat-grid"></div></div>
+        <div id="selectedLabel" class="selected-label">좌석을 선택하세요.</div>
+        <p class="small">초록색 좌석만 선택할 수 있습니다.</p>
+        <button class="btn primary" onclick="submitEntry()">선택 좌석으로 입실</button>
+      </div>
+    </div>
+  </section>
 
-  <script>
-    function openAttendance() {
-      window.location.href =
-        "https://script.google.com/macros/s/AKfycbz5xieqatT3H6iaXvv_UXtZHu05iCHS-oOVfxyF3fTj6kLDoJYhrhw3vPQUQml_RxM3yw/exec";
-    }
-  </script>
+  <section id="pageProcessing" class="page center-screen">
+    <div class="processing-box"><div class="spinner"></div><div id="processingText" style="font-size:20px;font-weight:800;line-height:1.55">처리 중입니다.</div><div class="small" style="margin-top:10px">잠시만 기다려 주세요.</div></div>
+  </section>
+
+  <section id="pageComplete" class="page center-screen">
+    <div class="completion-box">
+      <div id="completeIcon" class="complete-icon">✓</div>
+      <div id="completeTitle" class="complete-title">완료되었습니다.</div>
+      <div id="completeDetail" class="complete-detail"></div>
+      <div id="outsideMessage" class="outside hidden">허용반경 밖</div>
+    </div>
+  </section>
+
+<iframe id="apiFrame" name="attendanceApiFrame" title="출석 처리" style="display:none"></iframe>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbz5xieqatT3H6iaXvv_UXtZHu05iCHS-oOVfxyF3fTj6kLDoJYhrhw3vPQUQml_RxM3yw/exec';
+const API_TOKEN = 'tcad-v20-7f4b9d2c6a1e8f35';
+let selectedSeat='';
+let current={};
+let pendingPosts=new Map();
+const pages=['pageLogin','pageState','pageSeats','pageProcessing','pageComplete'];
+const deviceId=(()=>{let v=localStorage.getItem('attendanceDeviceId');if(!v){v=(crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random());localStorage.setItem('attendanceDeviceId',v)}return v})();
+function el(id){return document.getElementById(id)}
+function val(id){return el(id).value.trim()}
+function show(id,on=true){el(id).classList.toggle('hidden',!on)}
+function showPage(id){pages.forEach(p=>el(p).classList.toggle('active',p===id));document.body.style.overflow=(id==='pageProcessing'||id==='pageComplete')?'hidden':'';requestAnimationFrame(()=>window.scrollTo({top:0,left:0,behavior:'instant'}))}
+function setMsg(t){el('message').innerHTML=t?'<div class="msg">'+escapeHtml(t)+'</div>':''}
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function goLogin(){current={};selectedSeat='';setMsg('');show('phoneBox',false);showPage('pageLogin');el('name').focus()}
+
+function jsonp(op,params={}){
+  return new Promise((resolve,reject)=>{
+    const cb='tcadCb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const script=document.createElement('script');
+    const timer=setTimeout(()=>finish(new Error('서버 응답 시간이 초과되었습니다.')),20000);
+    function finish(err,data){clearTimeout(timer);delete window[cb];script.remove();err?reject(err):resolve(data)}
+    window[cb]=data=>finish(null,data);
+    const q=new URLSearchParams({api:'1',op,token:API_TOKEN,callback:cb,...params});
+    script.onerror=()=>finish(new Error('서버에 연결하지 못했습니다.'));
+    script.src=API_URL+'?'+q.toString();
+    document.head.appendChild(script);
+  });
+}
+
+function apiPost(payload){
+  return new Promise((resolve,reject)=>{
+    const requestId='req_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const timer=setTimeout(()=>{pendingPosts.delete(requestId);reject(new Error('서버 응답 시간이 초과되었습니다.'));},25000);
+    pendingPosts.set(requestId,{resolve,reject,timer});
+    const form=document.createElement('form');
+    form.method='POST';
+    form.action=API_URL;
+    form.target='attendanceApiFrame';
+    form.style.display='none';
+    const fields={api:'1',op:'record',token:API_TOKEN,requestId,payload:JSON.stringify(payload)};
+    Object.entries(fields).forEach(([name,value])=>{const input=document.createElement('input');input.type='hidden';input.name=name;input.value=value;form.appendChild(input)});
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(()=>form.remove(),1000);
+  });
+}
+
+window.addEventListener('message',event=>{
+  if(event.origin!=='https://script.google.com' && !event.origin.endsWith('.googleusercontent.com')) return;
+  const data=event.data||{};
+  if(data.source!=='tcad-attendance-v20') return;
+  const pending=pendingPosts.get(data.requestId);
+  if(!pending) return;
+  clearTimeout(pending.timer);pendingPosts.delete(data.requestId);pending.resolve(data.result);
+});
+
+async function lookup(){
+  const name=val('name');
+  if(!name){setMsg('이름을 입력하세요.');el('name').focus();return}
+  setMsg('');showProcessing('내 출석 상태를 확인하고 있습니다.');
+  try{renderState(await jsonp('state',{name,phone4:val('phone'),deviceId}))}
+  catch(e){showPage('pageLogin');setMsg(e.message||'상태 확인 중 오류가 발생했습니다.')}
+}
+function renderState(r){if(!r||!r.ok){showPage('pageLogin');show('phoneBox',!!(r&&r.needsPhone));setMsg((r&&r.message)||'상태를 확인하지 못했습니다.');return}current={name:r.name,phone4:val('phone')};show('phoneBox',!!r.needsPhone);const s=r.state||{};let h='<b>'+escapeHtml(r.name)+'</b><br>현재 상태: <b>'+escapeHtml(s.status||'')+'</b>';if(!r.privacyLocked){if(s.seat)h+='<br>좌석: '+escapeHtml(s.seat);if(s.inTime)h+='<br>최초 입실: '+fmt(s.inTime);if(s.outTime)h+='<br>최종 퇴실: '+fmt(s.outTime);if(s.durationMs!=null)h+='<br>총 체류: '+duration(s.durationMs)}el('state').innerHTML=h;const a=el('actions');a.innerHTML='';if(!r.privacyLocked){if(s.status==='입실 중')a.innerHTML='<button class="btn danger" onclick="submitExit()">퇴실하기</button>';else a.innerHTML='<button class="btn secondary" onclick="openSeats()">입실하기</button>'}showPage('pageState')}
+function validSeats(){const out=[];for(let row=1;row<=9;row++){for(let c=0;c<15;c++){const letter=String.fromCharCode(65+c);if((row===2||row===3)&&(letter==='A'||letter==='O'))continue;out.push(letter+row)}}return out}
+async function openSeats(){selectedSeat='';el('selectedLabel').textContent='좌석을 선택하세요.';drawSeats({validSeats:validSeats(),seats:{}});showPage('pageSeats');try{const r=await jsonp('seats');if(r&&r.ok)drawSeats(r)}catch(e){}}
+function drawSeats(r){const valid=(r&&Array.isArray(r.validSeats))?r.validSeats:validSeats();const occupied=(r&&r.seats)||{};const g=el('seatGrid');g.innerHTML='';for(let row=1;row<=9;row++){for(let c=0;c<17;c++){const b=document.createElement('button');b.type='button';if(c===5||c===11){b.className='aisle';b.tabIndex=-1;g.appendChild(b);continue}const ci=c-(c>11?2:(c>5?1:0));const seat=String.fromCharCode(65+ci)+row;if(!valid.includes(seat)){b.className='seat gap';b.tabIndex=-1;g.appendChild(b);continue}b.className='seat';b.textContent=seat;b.setAttribute('aria-label',seat+' 좌석');if(occupied[seat]&&occupied[seat].length){b.disabled=true;b.title='현재 사용 중인 좌석'}b.onclick=()=>{document.querySelectorAll('.seat.selected').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');selectedSeat=seat;el('selectedLabel').textContent='선택 좌석: '+seat};g.appendChild(b)}}}
+function showProcessing(text){el('processingText').textContent=text||'처리 중입니다.';showPage('pageProcessing')}
+function geo(cb){if(!navigator.geolocation){cb({});return}navigator.geolocation.getCurrentPosition(p=>cb({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}),()=>cb({}),{enableHighAccuracy:true,timeout:12000,maximumAge:0})}
+function submitEntry(){if(!selectedSeat){el('selectedLabel').textContent='좌석을 선택하세요.';return}showProcessing('위치를 확인하고 입실 처리 중입니다.');geo(loc=>send('입실',selectedSeat,loc))}
+function submitExit(){if(!confirm('퇴실 처리하시겠습니까?'))return;showProcessing('위치를 확인하고 퇴실 처리 중입니다.');geo(loc=>send('퇴실','',loc))}
+async function send(action,seat,loc,attempt=0){
+  try{
+    const r=await apiPost({name:current.name,phone4:current.phone4,action,seat,deviceId,...loc});
+    if(r&&r.busy&&attempt<2){el('processingText').textContent='요청이 몰려 잠시 대기 중입니다.';setTimeout(()=>send(action,seat,loc,attempt+1),800+Math.random()*800);return}
+    if(!r||!r.ok){alert((r&&r.message)||'처리하지 못했습니다.');showPage(action==='입실'?'pageSeats':'pageState');return}
+    showCompletion(action,seat,!!r.outsideRadius,String(r.locationStatus||''));
+  }catch(e){
+    if(attempt<2){el('processingText').textContent='연결을 다시 시도하고 있습니다.';setTimeout(()=>send(action,seat,loc,attempt+1),800+Math.random()*800);return}
+    alert(e.message||'처리 중 오류가 발생했습니다. 다시 시도하세요.');showPage(action==='입실'?'pageSeats':'pageState');
+  }
+}
+function showCompletion(action,seat,outside,status){el('completeTitle').textContent=action==='입실'?'입실이 완료되었습니다.':'퇴실이 완료되었습니다.';el('completeDetail').textContent=action==='입실'?(seat+' 좌석'):'';show('outsideMessage',outside);el('completeIcon').classList.toggle('warning',outside);el('completeIcon').textContent=outside?'!':'✓';if(!outside&&status==='정확도 낮음'){el('completeDetail').textContent+=(el('completeDetail').textContent?'\n':'')+'위치 정확도가 낮습니다.'}showPage('pageComplete')}
+function fmt(v){return new Date(v).toLocaleString('ko-KR')}
+function duration(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return `${h}시간 ${m}분 ${x}초`}
+</script>
 </body>
 </html>
